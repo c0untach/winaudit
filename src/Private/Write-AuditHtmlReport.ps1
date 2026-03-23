@@ -11,10 +11,25 @@ function Write-AuditHtmlReport {
 function Convert-ValueToHtml {
     param([object]$Value)
 
+    # --- NULL or empty ---
+    if ($null -eq $Value) {
+        return "<i>(none)</i>"
+    }
+
+    # --- Multiline string ---
     if ($Value -is [string] -and $Value.Contains("`n")) {
         return "<pre>$([System.Web.HttpUtility]::HtmlEncode($Value))</pre>"
     }
 
+    # --- Array of strings ---
+    if ($Value -is [string[]]) {
+        $items = $Value | ForEach-Object {
+            "<li>$([System.Web.HttpUtility]::HtmlEncode($_))</li>"
+        }
+        return "<ul>$($items -join '')</ul>"
+    }
+
+    # --- Array of objects ---
     if ($Value -is [System.Collections.IEnumerable] -and
         $Value -notlike [string] -and
         $Value.Count -gt 0 -and
@@ -22,13 +37,26 @@ function Convert-ValueToHtml {
 
         try {
             return ($Value | ConvertTo-Html -Fragment)
-        } catch {
+        }
+        catch {
             return "<pre>$([System.Web.HttpUtility]::HtmlEncode(($Value | Out-String)))</pre>"
         }
     }
 
+    # --- Single object with properties ---
+    if ($Value -is [psobject] -and $Value.PSObject.Properties.Count -gt 0) {
+        try {
+            return ($Value | ConvertTo-Html -Fragment)
+        }
+        catch {
+            return "<pre>$([System.Web.HttpUtility]::HtmlEncode(($Value | Out-String)))</pre>"
+        }
+    }
+
+    # --- Simple scalar ---
     return $([System.Web.HttpUtility]::HtmlEncode($Value.ToString()))
 }
+
 
 
     $sections = foreach ($category in ($AuditObjects.Category | Sort-Object -Unique)) {
