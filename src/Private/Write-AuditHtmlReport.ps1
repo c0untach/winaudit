@@ -8,29 +8,28 @@ function Write-AuditHtmlReport {
         [string]$OutputPath
     )
 
-    function Convert-ValueToHtml {
-        param([object]$Value)
+function Convert-ValueToHtml {
+    param([object]$Value)
 
-        if ($Value -is [string] -and $Value.Contains("`n")) {
-            # Multiline text → <pre>
-            return "<pre>$([System.Web.HttpUtility]::HtmlEncode($Value))</pre>"
-        }
-
-        if ($Value -is [System.Collections.IEnumerable] -and
-            $Value -notlike [string] -and
-            $Value.Count -gt 0 -and
-            $Value[0] -isnot [char]) {
-
-            try {
-                return ($Value | ConvertTo-Html -Fragment)
-            } catch {
-                return "<pre>$([System.Web.HttpUtility]::HtmlEncode(($Value | Out-String)))</pre>"
-            }
-        }
-
-        # Simple scalar
-        return $([System.Web.HttpUtility]::HtmlEncode($Value.ToString()))
+    if ($Value -is [string] -and $Value.Contains("`n")) {
+        return "<pre>$([System.Web.HttpUtility]::HtmlEncode($Value))</pre>"
     }
+
+    if ($Value -is [System.Collections.IEnumerable] -and
+        $Value -notlike [string] -and
+        $Value.Count -gt 0 -and
+        $Value[0] -isnot [char]) {
+
+        try {
+            return ($Value | ConvertTo-Html -Fragment)
+        } catch {
+            return "<pre>$([System.Web.HttpUtility]::HtmlEncode(($Value | Out-String)))</pre>"
+        }
+    }
+
+    return $([System.Web.HttpUtility]::HtmlEncode($Value.ToString()))
+}
+
 
     $sections = foreach ($category in ($AuditObjects.Category | Sort-Object -Unique)) {
         $items = $AuditObjects | Where-Object Category -eq $category
